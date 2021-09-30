@@ -1,6 +1,6 @@
 ﻿通信层:SCS
 ----------------------------
-硬件接口层:SCSerail
+硬件接口层:SCSerial
 ----------------------------
 应用层:SMSBL SMSCL SCSCL分别对应飞特三个系列舵机
 
@@ -15,7 +15,7 @@ SMSCL\SMSBL\SCSCL各自接口参考相应头文件
 
 INST.h---指令定义头文件
 SCS.h/SCS.cpp---通信层程序
-SCSerail.h/SCSerail.cpp---硬件接口程序
+SCSerial.h/SCSerial.cpp---硬件接口程序
 SMSBL.h/SMSBL.cpp---SMSBL应用层程序
 SMSCL.h/SMSCL.cpp---SMSCL应用层程序
 SCSCL.h/SCSCL.cpp---SCSCL应用层程序
@@ -23,5 +23,5 @@ SCSCL.h/SCSCL.cpp---SCSCL应用层程序
 
 
                        SMSBL类
-SCS类<---SCSerail类<---SMSCL类
+SCS类<---SCSerial类<---SMSCL类
                        SCSCL类
