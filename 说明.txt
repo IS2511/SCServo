@@ -25,3 +25,27 @@ SCSCL.h/SCSCL.cpp---SCSCL应用层程序
                        SMSBL类
 SCS类<---SCSerial类<---SMSCL类
                        SCSCL类
+
+SCServoArduinoLib_190801.7z:
+(no release notes that I know of)
+
+SCServoArduinoLib_180813更新说明：
+一、修改SMSLib
+1、修改Reset为Recovery
+2、删除WriteMaxDiff与ReadMaxDiff函数
+3、修改所有读函数返回int类型
+二、修改examples代码
+1、Broadcast由原来多点位置循环改为两点位置循环
+2、SMCL与SCCL写指令/异步写指令/同步写指令时间参数改为速度参数
+3、SMCL与SCCL运行时间增加积调节、加减速度与负载响应延时
+4、修改注释
+
+SCServoArduinoLib_180912.7z
+一、修复PING指令BUG
+二、增加Ping实例
+
+SCServoArduinoLib_181021.7z
+一、增加SyncWritePos2同步写指令，每个舵机位置可单独设置，只修改SCSCL库
+
+SCServoArduinoLib_181209.7z
+一、SyncWritePos2同步写指令错误修复
