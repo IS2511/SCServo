@@ -1,22 +1,28 @@
-﻿#include <SCServo.h>
+/*
+异步写例子在SCS15中测试通过，如果测试其它型号SCS系列舵机请更改合适的位置、速度与延时参数。
+*/
 
-SCSCL sm;
+#include <SCServo.h>
+
+SCSCL sc;
 
 void setup()
 {
+  Serial.begin(115200);
   Serial1.begin(1000000);
-  sm.pSerial = &Serial1;
+  sc.pSerial = &Serial1;
+  delay(1000);
 }
 
 void loop()
 {
-  sm.RegWritePos(1, 300, 0, 500);//指令:异步写指令, ID:1, 目标:300, 速度=500/s
-  sm.RegWritePos(2, 300, 0, 500);//指令:异步写指令, ID:2, 目标:300, 速度=500/s
-  sm.RegWriteAction();//执行异步写指令
-  delay(1050);//行程=800-300=500, 加减速时间约=50ms(负载越大时间越长), 总运行时间=1000+50=1050ms
+  sc.RegWritePos(1, 1000, 0, 1500);//舵机(ID1)以最高速度V=1500步/秒,运行至P1=1000
+  sc.RegWritePos(2, 1000, 0, 1500);//舵机(ID2)以最高速度V=1500步/秒,运行至P1=1000
+  sc.RegWriteAction();
+  delay(754);//[(P1-P0)/V]*1000+100
   
-  sm.RegWritePos(1, 0, 0, 500);//指令:异步写指令, ID:1, 目标:800, 速度=500/s
-  sm.RegWritePos(2, 0, 0, 500);//指令:异步写指令, ID:2, 目标:800, 速度=500/s
-  sm.RegWriteAction();//执行异步写指令
-  delay(1050);//行程=800-300=500, 加减速时间约=50ms(负载越大时间越长), 总运行时间=1000+50=1050ms
+  sc.RegWritePos(1, 20, 0, 1500);//舵机(ID1)以最高V=1500步/秒,运行至P1=20
+  sc.RegWritePos(2, 20, 0, 1500);//舵机(ID2)以最高速度V=1500步/秒,运行至P1=20
+  sc.RegWriteAction();
+  delay(754);//[(P1-P0)/V]*1000+100
 }

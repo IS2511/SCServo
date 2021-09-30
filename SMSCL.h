@@ -1,22 +1,22 @@
 /*
  * SMSCL.h
  * 飞特SMSCL系列串行舵机接口
- * 日期: 2018.8.2
- * 作者: 谭雄乐
+ * 日期: 2019.6.28
+ * 作者: 
  */
 
 #ifndef _SMSCL_H
 #define _SMSCL_H
 
 
-#define		SMSCL_1M			0
-#define		SMSCL_0_5M			1
-#define		SMSCL_250K			2
-#define		SMSCL_128K			3
-#define		SMSCL_115200		4
-#define		SMSCL_76800			5
-#define		SMSCL_57600			6
-#define		SMSCL_38400			7
+#define	SMSCL_1M 0
+#define	SMSCL_0_5M 1
+#define	SMSCL_250K 2
+#define	SMSCL_128K 3
+#define	SMSCL_115200 4
+#define	SMSCL_76800	5
+#define	SMSCL_57600	6
+#define	SMSCL_38400	7
 
 //内存表定义
 //-------EPROM(只读)--------
@@ -54,6 +54,7 @@
 
 //-------SRAM(读写)--------
 #define SMSCL_TORQUE_ENABLE 40
+#define SMSCL_ACC 41
 #define SMSCL_GOAL_POSITION_L 42
 #define SMSCL_GOAL_POSITION_H 43
 #define SMSCL_GOAL_TIME_L 44
@@ -76,53 +77,33 @@
 #define SMSCL_PRESENT_CURRENT_L 69
 #define SMSCL_PRESENT_CURRENT_H 70
 
-#include "SCSerail.h"
+#include "SCSerial.h"
 
-class SMSCL : public SCSerail
+class SMSCL : public SCSerial
 {
 public:
 	SMSCL();
 	SMSCL(u8 End);
 	SMSCL(u8 End, u8 Level);
-	
-	virtual int WritePos(u8 ID, s16 Position, u16 Time, u16 Speed = 0);//普通写位置指令
-	virtual int RegWritePos(u8 ID, s16 Position, u16 Time, u16 Speed = 0);//异步写位置指令
-	virtual void SyncWritePos(u8 ID[], u8 IDN, s16 Position, u16 Time, u16 Speed = 0);//同步写位置指令
+	virtual int WritePosEx(u8 ID, s16 Position, u16 Speed, u8 ACC = 0);//普通写单个舵机位置指令
+	virtual int RegWritePosEx(u8 ID, s16 Position, u16 Speed, u8 ACC = 0);//异步写单个舵机位置指令(RegWriteAction生效)
+	virtual void SyncWritePosEx(u8 ID[], u8 IDN, s16 Position[], u16 Speed[], u8 ACC[]);//同步写多个舵机位置指令
+	virtual int WheelMode(u8 ID);//恒速模式
 	virtual int WriteSpe(u8 ID, s16 Speed, u8 ACC = 0);//恒速模式控制指令
-	virtual int pwmMode(u8 ID);//PWM输出模式
-	virtual int wheelMode(u8 ID);//恒速模式
-	virtual int joinMode(u8 ID, u16 minAngle = 0, u16 maxAngle = 1023);//普通伺服模式	
-	virtual s16 ReadPos(u8 ID, u8 *Err = NULL);//读位置 , Err not used
-	virtual int Recovery(u8 ID);//恢复舵机参数为默认值
-	virtual int Reset(u8 ID);//复位舵机
+	virtual int EnableTorque(u8 ID, u8 Enable);//扭力控制指令
 	virtual int unLockEprom(u8 ID);//eprom解锁
 	virtual int LockEprom(u8 ID);//eprom加锁
-	virtual int WritePWM(u8 ID, s16 pwmOut);//PWM输出模式指令
-	virtual int EnableTorque(u8 ID, u8 Enable);//扭力控制指令
-	virtual void RegWriteAction();//执行异步写指令
-	virtual int ReadLoad(u8 ID);//读输出扭力
-	virtual int ReadVoltage(u8 ID);//读电压
-	virtual int ReadTemper(u8 ID);//读温度
-	virtual int ReadSpeed(u8 ID, u8 *Err = NULL);
-	virtual int ReadCurrent(u8 ID, u8 *Err = NULL);
-	virtual int ReadMove(u8 ID);
-
-	// return -1 if fail, >=0 if ok
-	virtual int WritePunch(u8 ID,u16 new_punch);
-	virtual int WriteP(u8 ID, u8 new_P);
-	virtual int WriteI(u8 ID, u8 new_I);
-	virtual int WriteD(u8 ID, u8 new_D);
-	virtual int WriteMaxTorque(u8 ID, u16 new_torque);
-	virtual int WriteOfs(u8 ID, s16 Ofs);//中位校准
-	virtual int ReadPunch(u8 ID);
-	virtual int ReadP(u8 ID);
-	virtual int ReadI(u8 ID);
-	virtual int ReadD(u8 ID);
-	virtual int ReadMaxTorque(u8 ID);
-	virtual int ReadTorqueEnable(u8 ID);
-	virtual int ReadOfs(u8 ID, u8 *Err = NULL); 
+	virtual int CalibrationOfs(u8 ID);//中位校准
+	virtual int FeedBack(int ID);//反馈舵机信息
+	virtual int ReadPos(int ID);//读位置
+	virtual int ReadSpeed(int ID);//读速度
+	virtual int ReadLoad(int ID);//读输出扭力
+	virtual int ReadVoltage(int ID);//读电压
+	virtual int ReadTemper(int ID);//读温度
+	virtual int ReadMove(int ID);////读移动状态
+	virtual int ReadCurrent(int ID);//读电流
 private:
-	int writePos(u8 ID, s16 Position, u16 Time, u16 Speed, u8 Fun);
+	u8 Mem[SMSCL_PRESENT_CURRENT_H-SMSCL_PRESENT_POSITION_L+1];
 };
 
 #endif

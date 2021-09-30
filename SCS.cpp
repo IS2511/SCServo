@@ -1,8 +1,8 @@
 ﻿/*
  * SCS.cpp
  * 飞特串行舵机通信层协议程序
- * 日期: 2018.8.2
- * 作者: 谭雄乐
+ * 日期: 2019.6.28
+ * 作者: 
  */
 
 #include <stddef.h>
@@ -11,22 +11,21 @@
 SCS::SCS()
 {
 	Level = 1;//除广播指令所有指令返回应答
-	//End = 1;//舵机处理器与控制板处理器端结构不一致
-	Error = -1;
+	Error = 0;
 }
 
 SCS::SCS(u8 End)
 {
 	Level = 1;
 	this->End = End;
-	Error = -1;
+	Error = 0;
 }
 
 SCS::SCS(u8 End, u8 Level)
 {
 	this->Level = Level;
 	this->End = End;
-	Error = -1;
+	Error = 0;
 }
 
 //1个16位数拆分为2个8位数
@@ -93,8 +92,9 @@ void SCS::writeBuf(u8 ID, u8 MemAddr, u8 *nDat, u8 nLen, u8 Fun)
 //舵机ID，MemAddr内存表地址，写入数据，写入长度
 int SCS::genWrite(u8 ID, u8 MemAddr, u8 *nDat, u8 nLen)
 {
-	flushSCS();
+	rFlushSCS();
 	writeBuf(ID, MemAddr, nDat, nLen, INST_WRITE);
+	wFlushSCS();
 	return Ack(ID);
 }
 
@@ -102,15 +102,27 @@ int SCS::genWrite(u8 ID, u8 MemAddr, u8 *nDat, u8 nLen)
 //舵机ID，MemAddr内存表地址，写入数据，写入长度
 int SCS::regWrite(u8 ID, u8 MemAddr, u8 *nDat, u8 nLen)
 {
-	flushSCS();
+	rFlushSCS();
 	writeBuf(ID, MemAddr, nDat, nLen, INST_REG_WRITE);
+	wFlushSCS();
+	return Ack(ID);
+}
+
+//异步写执行指令
+//舵机ID
+int SCS::RegWriteAction(u8 ID)
+{
+	rFlushSCS();
+	writeBuf(ID, 0, NULL, 0, INST_REG_ACTION);
+	wFlushSCS();
 	return Ack(ID);
 }
 
 //同步写指令
 //舵机ID[]数组，IDN数组长度，MemAddr内存表地址，写入数据，写入长度
-void SCS::snycWrite(u8 ID[], u8 IDN, u8 MemAddr, u8 *nDat, u8 nLen)
+void SCS::syncWrite(u8 ID[], u8 IDN, u8 MemAddr, u8 *nDat, u8 nLen)
 {
+	rFlushSCS();
 	u8 mesLen = ((nLen+1)*IDN+4);
 	u8 Sum = 0;
 	u8 bBuf[7];
@@ -134,21 +146,24 @@ void SCS::snycWrite(u8 ID[], u8 IDN, u8 MemAddr, u8 *nDat, u8 nLen)
 		}
 	}
 	writeSCS(~Sum);
+	wFlushSCS();
 }
 
 int SCS::writeByte(u8 ID, u8 MemAddr, u8 bDat)
 {
-	flushSCS();
+	rFlushSCS();
 	writeBuf(ID, MemAddr, &bDat, 1, INST_WRITE);
+	wFlushSCS();
 	return Ack(ID);
 }
 
 int SCS::writeWord(u8 ID, u8 MemAddr, u16 wDat)
 {
-	flushSCS();
-	u8 buf[2];
-	Host2SCS(buf+0, buf+1, wDat);
-	writeBuf(ID, MemAddr, buf, 2, INST_WRITE);
+	u8 bBuf[2];
+	Host2SCS(bBuf+0, bBuf+1, wDat);
+	rFlushSCS();
+	writeBuf(ID, MemAddr, bBuf, 2, INST_WRITE);
+	wFlushSCS();
 	return Ack(ID);
 }
 
@@ -156,34 +171,34 @@ int SCS::writeWord(u8 ID, u8 MemAddr, u16 wDat)
 //舵机ID，MemAddr内存表地址，返回数据nData，数据长度nLen
 int SCS::Read(u8 ID, u8 MemAddr, u8 *nData, u8 nLen)
 {
-	flushSCS();
+	rFlushSCS();
 	writeBuf(ID, MemAddr, &nLen, 1, INST_READ);
-	u8 bBuf[6];
-	if(readSCS(bBuf, 5)!=5){
-		Error = -1;
+	wFlushSCS();
+	if(!checkHead()){
 		return 0;
 	}
-	if(bBuf[0]!=0xff || bBuf[1]!=0xff){
-		Error = -1;
-		return -1;		
+	u8 bBuf[4];
+	Error = 0;
+	if(readSCS(bBuf, 3)!=3){
+		return 0;
 	}
 	int Size = readSCS(nData, nLen);
-
-	if(readSCS(bBuf+5, 1)!=1){
-		Error = -1;
+	if(Size!=nLen){
 		return 0;
 	}
-	u8 calSum = bBuf[2]+bBuf[3]+bBuf[4];
+	if(readSCS(bBuf+3, 1)!=1){
+		return 0;
+	}
+	u8 calSum = bBuf[0]+bBuf[1]+bBuf[2];
 	u8 i;
 	for(i=0; i<Size; i++){
 		calSum += nData[i];
 	}
 	calSum = ~calSum;
-	if(calSum!=bBuf[5]){
-		Error = -1;
+	if(calSum!=bBuf[3]){
 		return 0;
 	}
-	Error = bBuf[4];
+	Error = bBuf[2];
 	return Size;
 }
 
@@ -212,51 +227,78 @@ int SCS::readWord(u8 ID, u8 MemAddr)
 	return wDat;
 }
 
-int	SCS::Ack(u8 ID)
+//Ping指令，返回舵机ID，超时返回-1
+int	SCS::Ping(u8 ID)
 {
+	rFlushSCS();
+	writeBuf(ID, 0, NULL, 0, INST_PING);
+	wFlushSCS();
 	Error = 0;
-	if(ID != 0xfe && Level){
-		u8 bBuf[6];
-		u8 Size = readSCS(bBuf, 6);
-		if(Size!=6){
-			Error = -1;
+	if(!checkHead()){
+		return -1;
+	}
+	u8 bBuf[4];
+	if(readSCS(bBuf, 4)!=4){
+		return -1;
+	}
+	if(bBuf[0]!=ID && ID!=0xfe){
+		return -1;
+	}
+	if(bBuf[1]!=2){
+		return -1;
+	}
+	u8 calSum = ~(bBuf[0]+bBuf[1]+bBuf[2]);
+	if(calSum!=bBuf[3]){
+		return -1;			
+	}
+	Error = bBuf[2];
+	return bBuf[0];
+}
+
+int SCS::checkHead()
+{
+	u8 bDat;
+	u8 bBuf[2] = {0, 0};
+	u8 Cnt = 0;
+	while(1){
+		if(!readSCS(&bDat, 1)){
 			return 0;
 		}
-		if(bBuf[0]!=0xff || bBuf[1]!=0xff){
-			Error = -1;
-			return -1;		
+		bBuf[1] = bBuf[0];
+		bBuf[0] = bDat;
+		if(bBuf[0]==0xff && bBuf[1]==0xff){
+			break;
 		}
-		u8 calSum = ~(bBuf[2]+bBuf[3]+bBuf[4]);
-		if(calSum!=bBuf[5]){
-			Error = -1;
-			return -1;			
+		Cnt++;
+		if(Cnt>10){
+			return 0;
 		}
-		Error = bBuf[4];
 	}
 	return 1;
 }
 
-//Ping指令，返回舵机ID，超时返回-1
-int	SCS::Ping(u8 ID)
+int	SCS::Ack(u8 ID)
 {
-	u8 bBuf[6];
-	int Size;
-	flushSCS();
-	writeBuf(ID, 0, NULL, 0, INST_PING);
-	Size = readSCS(bBuf, 6);
-	if(Size!=6){
-		Error = -1;
-		return -1;
+	Error = 0;
+	if(ID!=0xfe && Level){
+		if(!checkHead()){
+			return 0;
+		}
+		u8 bBuf[4];
+		if(readSCS(bBuf, 4)!=4){
+			return 0;
+		}
+		if(bBuf[0]!=ID){
+			return 0;
+		}
+		if(bBuf[1]!=2){
+			return 0;
+		}
+		u8 calSum = ~(bBuf[0]+bBuf[1]+bBuf[2]);
+		if(calSum!=bBuf[3]){
+			return 0;			
+		}
+		Error = bBuf[2];
 	}
-	if(bBuf[0]!=0xff || bBuf[1]!=0xff){
-		Error = -1;
-		return -1;		
-	}
-	u8 calSum = ~(bBuf[2]+bBuf[3]+bBuf[4]);
-	if(calSum!=bBuf[5]){
-		Error = -1;
-		return -1;			
-	}
-	Error = bBuf[4];
-	return bBuf[2];
+	return 1;
 }

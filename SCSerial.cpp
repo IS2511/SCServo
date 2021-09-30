@@ -1,40 +1,36 @@
 /*
- * SCServo.cpp
+ * SCSerial.h
  * 飞特串行舵机硬件接口层程序
- * 日期: 2017.8.22
- * 作者: 谭雄乐
+ * 日期: 2019.4.27
+ * 作者: 
  */
 
 
-#include "SCSerail.h"
+#include "SCSerial.h"
 
-SCSerail::SCSerail()
+SCSerial::SCSerial()
 {
 	IOTimeOut = 100;
 	pSerial = NULL;
 }
 
-SCSerail::SCSerail(u8 End):SCS(End)
+SCSerial::SCSerial(u8 End):SCS(End)
 {
 	IOTimeOut = 100;
 	pSerial = NULL;
 }
 
-SCSerail::SCSerail(u8 End, u8 Level):SCS(End, Level)
+SCSerial::SCSerial(u8 End, u8 Level):SCS(End, Level)
 {
 	IOTimeOut = 100;
 	pSerial = NULL;
 }
 
-int SCSerail::readSCS(unsigned char *nDat, int nLen)
+int SCSerial::readSCS(unsigned char *nDat, int nLen)
 {
 	int Size = 0;
 	int ComData;
-	#if defined(SCS_USE_MICROS)
-		unsigned long t_begin = micros();
-	#else
-		unsigned long t_begin = millis();
-	#endif
+	unsigned long t_begin = millis();
 	unsigned long t_user;
 	while(1){
 		ComData = pSerial->read();
@@ -43,20 +39,12 @@ int SCSerail::readSCS(unsigned char *nDat, int nLen)
 				nDat[Size] = ComData;
 			}
 			Size++;
-			#if defined(SCS_USE_MICROS)
-				t_begin = micros();
-			#else
-				t_begin = millis();
-			#endif
+			t_begin = millis();
 		}
 		if(Size>=nLen){
 			break;
 		}
-		#if defined(SCS_USE_MICROS)
-			t_user = micros() - t_begin;
-		#else
-			t_user = millis() - t_begin;
-		#endif
+		t_user = millis() - t_begin;
 		if(t_user>IOTimeOut){
 			break;
 		}
@@ -64,7 +52,7 @@ int SCSerail::readSCS(unsigned char *nDat, int nLen)
 	return Size;
 }
 
-int SCSerail::writeSCS(unsigned char *nDat, int nLen)
+int SCSerial::writeSCS(unsigned char *nDat, int nLen)
 {
 	if(nDat==NULL){
 		return 0;
@@ -72,12 +60,16 @@ int SCSerail::writeSCS(unsigned char *nDat, int nLen)
 	return pSerial->write(nDat, nLen);
 }
 
-int SCSerail::writeSCS(unsigned char bDat)
+int SCSerial::writeSCS(unsigned char bDat)
 {
 	return pSerial->write(&bDat, 1);
 }
 
-void SCSerail::flushSCS()
+void SCSerial::rFlushSCS()
 {
 	while(pSerial->read()!=-1);
+}
+
+void SCSerial::wFlushSCS()
+{
 }
