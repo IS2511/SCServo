@@ -1,31 +1,33 @@
 ﻿通信层:SCS
 ----------------------------
-硬件接口层:SCSerail
+硬件接口层:SCSerial
 ----------------------------
 应用层:SMSBL SMSCL SCSCL分别对应飞特三个系列舵机
 
 
 
-SMSBL smbl;//定义无SMBL系列舵机
-SMSCL smcl;//定义无SM系列舵机
-SCSCL sc;//定义无SC系列舵机
-SM\SMBL\SC各自接口参考相应头文件
+SMSBL sm;//定义SMSBL系列舵机
+SMSCL sm;//定义SMSCL系列舵机
+SCSCL sc;//定义SCSCL系列舵机
+SMSCL\SMSBL\SCSCL各自接口参考相应头文件
 
 
 
 INST.h---指令定义头文件
 SCS.h/SCS.cpp---通信层程序
-SCSerail.h/SCSerail.cpp---硬件接口程序
-SMSBL.h/SMSBL.cpp---SMBL应用层程序
-SMSCL.h/SMSCL.cpp---SM应用层程序
+SCSerial.h/SCSerial.cpp---硬件接口程序
+SMSBL.h/SMSBL.cpp---SMSBL应用层程序
+SMSCL.h/SMSCL.cpp---SMSCL应用层程序
 SCSCL.h/SCSCL.cpp---SCSCL应用层程序
 (内存表定义于应用层程序头文件SMSBL.h\SMSCL.h\SCSCL.h中不同系列舵内存表定义存在差异)
 
 
                        SMSBL类
-SCS类<---SCSerail类<---SMSCL类
+SCS类<---SCSerial类<---SMSCL类
                        SCSCL类
 
+SCServoArduinoLib_190801.7z:
+(no release notes that I know of)
 
 SCServoArduinoLib_180813更新说明：
 一、修改SMSLib
@@ -47,4 +49,3 @@ SCServoArduinoLib_181021.7z
 
 SCServoArduinoLib_181209.7z
 一、SyncWritePos2同步写指令错误修复
-
